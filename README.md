@@ -57,15 +57,52 @@ nix build --impure \
 cat ./result
 ```
 
-### build-flake
+### build-flake-aarch64
 
 ```bash
 nix build --builders "ssh://lima-default aarch64-linux" ./#packages.aarch64-linux.iso 
 ```
 
-### run
+### build-flake-x86_64
 
 ```bash
-nix shell nixpkgs#qemu
-qemu-system-aarch64 -boot d -machine virt -cdrom ./result/iso/nixos.iso -m 512
+nix build ./#packages.x86_64-linux.iso 
+```
+
+### virt-run
+
+Copy the image from the read-only Nix store to the local directory, and run it.
+
+```bash
+sudo mkdir -p /vm
+sudo cp -L ./result/nixos.qcow2 /vm
+sudo chmod 660 /vm/nixos.qcow2
+sudo chown -R libvirt-qemu:libvirt-qemu /vm
+virt-install --name nix-visor --memory 2048 --vcpus 1 --disk /vm/nixos.qcow2,bus=sata --import --os-variant nixos-unknown --network default
+```
+
+### virt-list
+
+Env: LIBVIRT_DEFAULT_URI=qemu:///system
+
+```bash
+virsh list --all
+```
+
+### virt-kill
+
+Shutdown with virtsh shutdown, or in this case, completely remove it with undefine.
+
+Env: LIBVIRT_DEFAULT_URI=qemu:///system
+
+```bash
+virsh undefine nix-visor --remove-all-storage
+```
+
+### virt-ssh
+
+https://www.cyberciti.biz/faq/find-ip-address-of-linux-kvm-guest-virtual-machine/
+
+```bash
+virsh domifaddr nix-visor | virsh-json | jq -r ".[0].Address"
 ```
