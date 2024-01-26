@@ -60,16 +60,18 @@ cat ./result
 ### build-flake-aarch64
 
 ```bash
-nix build --builders "ssh://lima-default aarch64-linux" ./#packages.aarch64-linux.iso 
+nix build --builders "ssh://lima-default aarch64-linux" ./#packages.vm.aarch64-linux
 ```
 
 ### build-flake-x86_64
 
 ```bash
-nix build ./#packages.x86_64-linux.iso 
+nix build ./#packages.vm.x86_64-linux
 ```
 
 ### virt-run
+
+Env: LIBVIRT_DEFAULT_URI=qemu:///system
 
 Copy the image from the read-only Nix store to the local directory, and run it.
 
@@ -78,7 +80,7 @@ sudo mkdir -p /vm
 sudo cp -L ./result/nixos.qcow2 /vm
 sudo chmod 660 /vm/nixos.qcow2
 sudo chown -R libvirt-qemu:libvirt-qemu /vm
-virt-install --name nix-visor --memory 2048 --vcpus 1 --disk /vm/nixos.qcow2,bus=sata --import --os-variant nixos-unknown --network default
+virt-install --name nix-visor --memory 2048 --vcpus 1 --disk /vm/nixos.qcow2,bus=sata --import --os-variant nixos-unknown --network default --no-auto-console
 ```
 
 ### virt-list
@@ -96,7 +98,8 @@ Shutdown with virtsh shutdown, or in this case, completely remove it with undefi
 Env: LIBVIRT_DEFAULT_URI=qemu:///system
 
 ```bash
-virsh undefine nix-visor --remove-all-storage
+virsh destroy nix-visor || true
+virsh undefine nix-visor --remove-all-storage || true
 ```
 
 ### virt-ssh

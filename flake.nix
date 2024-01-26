@@ -29,24 +29,19 @@
       });
     in
     {
-      packages.x86_64-linux = {
-        iso = nixos-generators.nixosGenerate {
-          system = "x86_64-linux";
-          modules = [
-            ./configuration.nix
-          ];
-          format = "qcow";
-        };
-      };
-      packages.aarch64-linux = {
-        iso = nixos-generators.nixosGenerate {
-          system = "aarch64-linux";
-          modules = [
-            ./configuration.nix
-          ];
-          format = "qcow";
-        };
-      };
+      packages.vm = forAllSystems ({ system, pkgs }: nixos-generators.nixosGenerate {
+        system = "x86_64-linux";
+        modules = [
+          # Pin nixpkgs to the flake input, so that the packages installed
+          # come from the flake inputs.nixpkgs.url.
+          ({ ... }: { nix.registry.nixpkgs.flake = nixpkgs; })
+          # Define sl at the system level.
+          ({ ... }: { environment.systemPackages = [ pkgs.sl ]; })
+          # Apply the rest of the config.
+          ./configuration.nix
+        ];
+        format = "qcow";
+      });
 
       # `nix develop` provides a shell containing development tools.
       devShell = forAllSystems ({ system, pkgs }:

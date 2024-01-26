@@ -2,7 +2,9 @@
   # Enable the OpenSSH server.
   services.openssh = {
     enable = true;
-    permitRootLogin = "yes";
+    settings = {
+      PermitRootLogin = "yes";
+    };
   };
   users.users = {
     adrian = {
