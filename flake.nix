@@ -13,10 +13,22 @@
       url = "github:joerdav/xc";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    serve = {
+      url = "github:a-h/serve";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
-  outputs = { nixpkgs, nixos-generators, virsh-json, xc, ... }:
+  outputs = { nixpkgs, nixos-generators, virsh-json, xc, serve, ... }:
     let
+      allHostnames = [
+        "nix-host-a"
+      ];
+      forAllHostnames = f: nixpkgs.lib.genAttrs allHostnames (hostname: f {
+        system = "x86_64-linux";
+        pkgs = import nixpkgs { system = "x86_64-linux"; };
+        hostname = hostname;
+      });
       allSystems = [
         "x86_64-linux" # 64-bit Intel/AMD Linux
         "aarch64-linux" # 64-bit ARM Linux
@@ -29,14 +41,21 @@
       });
     in
     {
-      packages.vm = forAllSystems ({ system, pkgs }: nixos-generators.nixosGenerate {
-        system = "x86_64-linux";
+      packages.vm = forAllHostnames ({ system, pkgs, hostname }: nixos-generators.nixosGenerate {
+        system = system;
+        specialArgs = {
+          hostname = hostname;
+        };
         modules = [
           # Pin nixpkgs to the flake input, so that the packages installed
           # come from the flake inputs.nixpkgs.url.
           ({ ... }: { nix.registry.nixpkgs.flake = nixpkgs; })
           # Define sl at the system level.
-          ({ ... }: { environment.systemPackages = [ pkgs.sl ]; })
+          ({ ... }: {
+            environment.systemPackages = [
+              pkgs.sl
+            ];
+          })
           # Apply the rest of the config.
           ./configuration.nix
         ];
@@ -52,6 +71,7 @@
             pkgs.virt-manager
             xc.packages.${system}.xc
             virsh-json.packages.${system}.default
+            serve.packages.${system}.default
           ];
         });
     };

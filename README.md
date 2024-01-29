@@ -1,72 +1,15 @@
 # nix-visor
 
-Run Nix Flakes on Lima virtual machines.
+Run Nix Flakes on virt-ssh managed virtual machines.
 
 ## Tasks
 
-### create-lima-vm
+### build-image
 
-Install Nix on via `curl --proto '=https' --tlsv1.2 -sSf -L https://install.determinate.systems/nix | sh -s -- install`
-
-```bash
-limactl create --tty=false --name=default template://ubuntu
-```
-
-### create-install-iso
+If you add more, add more builds, one for each host.
 
 ```bash
-nix-build '<nixpkgs/nixos>' -A vm \
--I nixpkgs=channel:nixos-23.11 \
--I nixos-config=./configuration.nix
-```
-
-### check-builder
-
-```nix
-NIX_SSHOPTS='-p 60022' nix store info --store ssh://adrian@127.0.0.1
-```
-
-### configure-ssh
-
-You need to setup the correct SSH options, in `/etc/ssh/ssh_config` because in a multi-user system, the builder runs as root.
-
-```
-echo "Write the following in your ~/.ssh/config"
-cat << EOF
-Host lima-default
-	HostName 127.0.0.1
-	Port 60022
-	StrictHostKeyChecking=no
-	User adrian
- 	IdentityFile /Users/adrian/.lima/_config/user
-EOF
-```
-
-### check-builder-lima
-
-```nix
-nix store info --store ssh://lima-default
-```
-
-### display-system
-
-```bash
-nix build --impure \
-  --builders 'ssh://lima-default aarch64-linux' \
-  --expr '(with import <nixpkgs> { system = "aarch64-linux"; }; runCommand "foo" {} "uname > $out")' 
-cat ./result
-```
-
-### build-flake-aarch64
-
-```bash
-nix build --builders "ssh://lima-default aarch64-linux" ./#packages.vm.aarch64-linux
-```
-
-### build-flake-x86_64
-
-```bash
-nix build ./#packages.vm.x86_64-linux
+nix build ./#packages.vm.nix-host-a
 ```
 
 ### virt-run
@@ -80,7 +23,7 @@ sudo mkdir -p /vm
 sudo cp -L ./result/nixos.qcow2 /vm
 sudo chmod 660 /vm/nixos.qcow2
 sudo chown -R libvirt-qemu:libvirt-qemu /vm
-virt-install --name nix-visor --memory 2048 --vcpus 1 --disk /vm/nixos.qcow2,bus=sata --import --os-variant nixos-unknown --network default --no-auto-console
+virt-install --name nix-visor --memory 2048 --vcpus 1 --disk /vm/nixos.qcow2,bus=sata --import --os-variant nixos-unknown --network default --noautoconsole
 ```
 
 ### virt-list
@@ -108,4 +51,19 @@ https://www.cyberciti.biz/faq/find-ip-address-of-linux-kvm-guest-virtual-machine
 
 ```bash
 virsh domifaddr nix-visor | virsh-json | jq -r ".[0].Address"
+```
+
+### firewall-config
+
+On the host machine, to allow the VMs to access your machine, run:
+
+```
+sudo ufw allow from 192.168.122.0/16 to 192.168.122.1 port 9494 proto tcp
+sudo ufw reload
+```
+
+### serve-metadata
+
+```
+serve -addr "0.0.0.0:9494" -dir ./metadata
 ```

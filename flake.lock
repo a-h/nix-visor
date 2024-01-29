@@ -92,8 +92,29 @@
       "inputs": {
         "nixos-generators": "nixos-generators",
         "nixpkgs": "nixpkgs",
+        "serve": "serve",
         "virsh-json": "virsh-json",
         "xc": "xc"
+      }
+    },
+    "serve": {
+      "inputs": {
+        "nixpkgs": [
+          "nixpkgs"
+        ]
+      },
+      "locked": {
+        "lastModified": 1702137352,
+        "narHash": "sha256-8mIUpUWKETznAcQfNfjbT8G/PW6beJ/5rTeqxUmGHoo=",
+        "owner": "a-h",
+        "repo": "serve",
+        "rev": "6b801f9653706236a5ce32c5eb137cf20dd4f048",
+        "type": "github"
+      },
+      "original": {
+        "owner": "a-h",
+        "repo": "serve",
+        "type": "github"
       }
     },
     "virsh-json": {

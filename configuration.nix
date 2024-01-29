@@ -1,9 +1,54 @@
-{ config, pkgs, ... }: {
+{ config, pkgs, lib, hostname, ... }: {
+  networking = {
+    hostName = hostname;
+  };
   # Enable the OpenSSH server.
   services.openssh = {
     enable = true;
+  };
+  systemd = {
+    services = {
+      fetch-github-pat = {
+        script =
+          ''
+            mkdir -p /run/secrets/github-runner
+            ${pkgs.curl}/bin/curl --retry 5 --retry-max-time 120 http://192.168.122.1:9494/secrets/github_pat >> /run/secrets/github-runner/github_pat
+          '';
+        enable = true;
+        description = "fetch-github-pat";
+        after = [ "network-online.target" ];
+        wants = [ "network-online.target" ];
+        wantedBy = [ "multi-user.target" ];
+        serviceConfig = {
+          Type = "oneshot";
+          Restart = "on-failure";
+          RemainAfterExit = "yes";
+        };
+      };
+    };
+  };
+  # Enable a Github Runner.
+  services.github-runner = {
+    enable = true;
+    replace = true;
+    ephemeral = true;
+    # Shutdown the machine when the Github Action finishes processing its job.
+    serviceOverrides = {
+      Restart = lib.mkForce "on-failure";
+      #ExecStopPost = "systemctl poweroff";
+      Requires = "fetch-github-pat.service";
+    };
+    url = "https://github.com/a-h/self-hosted-runner-test";
+    tokenFile = "/run/secrets/github-runner/github_pat";
+    # Run the service once the secret has been fetched.
+  };
+  # Setup nix to use flakes.
+  nix = {
+    extraOptions = ''
+      experimental-features = nix-command flakes
+    '';
     settings = {
-      PermitRootLogin = "yes";
+      trusted-users = [ "root" "@wheel" ];
     };
   };
   users.users = {
