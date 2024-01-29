@@ -1,4 +1,4 @@
-{ config, pkgs, lib, hostname, ... }: {
+{ pkgs, lib, hostname, ... }: {
   networking = {
     hostName = hostname;
   };
@@ -35,12 +35,11 @@
     # Shutdown the machine when the Github Action finishes processing its job.
     serviceOverrides = {
       Restart = lib.mkForce "on-failure";
-      #ExecStopPost = "systemctl poweroff";
-      Requires = "fetch-github-pat.service";
+      ExecStopPost = [ "+${pkgs.shutdown-on-success}/bin/shutdown-on-success" ];
+      After = "fetch-github-pat.service";
     };
     url = "https://github.com/a-h/self-hosted-runner-test";
     tokenFile = "/run/secrets/github-runner/github_pat";
-    # Run the service once the secret has been fetched.
   };
   # Setup nix to use flakes.
   nix = {

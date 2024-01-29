@@ -21,12 +21,18 @@
 
   outputs = { nixpkgs, nixos-generators, virsh-json, xc, serve, ... }:
     let
+      pkgsForSystem = system: import nixpkgs {
+        inherit system;
+        overlays = [
+          (final: prev: { shutdown-on-success = (shutdownOnSuccess prev); })
+        ];
+      };
       allHostnames = [
         "nix-host-a"
       ];
       forAllHostnames = f: nixpkgs.lib.genAttrs allHostnames (hostname: f {
         system = "x86_64-linux";
-        pkgs = import nixpkgs { system = "x86_64-linux"; };
+        pkgs = pkgsForSystem "x86_64-linux";
         hostname = hostname;
       });
       allSystems = [
@@ -36,15 +42,26 @@
         "aarch64-darwin" # 64-bit ARM macOS
       ];
       forAllSystems = f: nixpkgs.lib.genAttrs allSystems (system: f {
-        inherit system;
-        pkgs = import nixpkgs { inherit system; };
+        system = system;
+        pkgs = pkgsForSystem system;
       });
+      shutdownOnSuccess = pkgs: pkgs.writeShellScriptBin "shutdown-on-success" ''
+        #!/usr/bin/env bash
+        echo "Shutting down if EXIT_STATUS is 0"
+        if [ "$EXIT_STATUS" -eq "0" ]; then
+          echo "Service ran to completion... shutting down."
+          systemctl poweroff
+        else
+          echo "Service failed, allowing restart."
+        fi
+      '';
     in
     {
       packages.vm = forAllHostnames ({ system, pkgs, hostname }: nixos-generators.nixosGenerate {
         system = system;
         specialArgs = {
           hostname = hostname;
+          pkgs = pkgs;
         };
         modules = [
           # Pin nixpkgs to the flake input, so that the packages installed
@@ -53,6 +70,7 @@
           # Define sl at the system level.
           ({ ... }: {
             environment.systemPackages = [
+              pkgs.kubectl
               pkgs.sl
             ];
           })
@@ -62,10 +80,13 @@
         format = "qcow";
       });
 
+      packages.shutdown = forAllSystems ({ system, pkgs }: pkgs.shutdown-on-success);
+
       # `nix develop` provides a shell containing development tools.
       devShell = forAllSystems ({ system, pkgs }:
         pkgs.mkShell {
           buildInputs = [
+            pkgs.shutdown-on-success
             pkgs.jq
             pkgs.libvirt
             pkgs.virt-manager
