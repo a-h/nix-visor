@@ -49,15 +49,17 @@ Env: LIBVIRT_DEFAULT_URI=qemu:///system
 virsh list --all
 ```
 
-### virt-kill
+### virt-kill-all
 
 Shutdown with virtsh shutdown, or in this case, completely remove it with undefine.
 
 Env: LIBVIRT_DEFAULT_URI=qemu:///system
 
 ```bash
-virsh destroy nix-visor || true
-virsh undefine nix-visor --remove-all-storage || true
+virsh destroy runner-1 || true
+virsh undefine runner-1 --remove-all-storage || true
+virsh destroy runner-2 || true
+virsh undefine runner-2 --remove-all-storage || true
 ```
 
 ### virt-ssh
@@ -81,4 +83,12 @@ sudo ufw reload
 
 ```
 serve -addr "0.0.0.0:9494" -dir ./metadata
+```
+
+### virsh-dumpxml
+
+To see the underlying XML of a domain, you can dump it.
+
+```
+virsh dumpxml runner-1  > config.xml
 ```

@@ -53,7 +53,8 @@
           echo "Service ran to completion... shutting down."
           systemctl poweroff
         else
-          echo "Service failed, allowing restart."
+          echo "Service failed, allowing restart in 5s"
+          sleep 5s
         fi
       '';
     in
