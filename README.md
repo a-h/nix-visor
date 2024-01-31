@@ -4,12 +4,27 @@ Run Nix Flakes on virt-ssh managed virtual machines.
 
 ## Tasks
 
-### build-image
+### build-image-1
+
+```bash
+nix build ./#packages.vm.nix-runner-1
+```
+
+### build-images
 
 If you add more, add more builds, one for each host.
 
 ```bash
-nix build ./#packages.vm.nix-host-a
+sudo mkdir -p /vm
+
+nix build ./#packages.vm.runner-1
+sudo cp -L ./result/nixos.qcow2 /vm/runner-1.qcow2
+
+nix build ./#packages.vm.runner-2
+sudo cp -L ./result/nixos.qcow2 /vm/runner-2.qcow2
+
+sudo chmod 660 /vm/*.qcow2
+sudo chown -R libvirt-qemu:libvirt-qemu /vm
 ```
 
 ### virt-run

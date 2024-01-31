@@ -28,7 +28,8 @@
         ];
       };
       allHostnames = [
-        "nix-host-a"
+        "runner-1"
+        "runner-2"
       ];
       forAllHostnames = f: nixpkgs.lib.genAttrs allHostnames (hostname: f {
         system = "x86_64-linux";
@@ -48,7 +49,7 @@
       shutdownOnSuccess = pkgs: pkgs.writeShellScriptBin "shutdown-on-success" ''
         #!/usr/bin/env bash
         echo "Shutting down if EXIT_STATUS is 0"
-        if [ "$EXIT_STATUS" -eq "0" ]; then
+        if [ "$EXIT_STATUS" = "0" ]; then
           echo "Service ran to completion... shutting down."
           systemctl poweroff
         else
